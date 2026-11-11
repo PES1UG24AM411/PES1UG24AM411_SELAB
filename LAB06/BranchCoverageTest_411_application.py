@@ -1,0 +1,122 @@
+import pytest
+
+from customs_duty import duty_rate, total_duty, clearance_channel
+
+
+# ==========================================
+# 1. DUTY RATE TESTS
+# ==========================================
+
+def test_prohibited_item():
+    with pytest.raises(ValueError, match="prohibited item"):
+        duty_rate("weapons", "US")
+
+
+@pytest.mark.parametrize("category, origin, expected", [
+    ("electronics", "FTA", 0.10),
+    ("electronics", "US", 0.20),
+    ("clothing", "FTA", 0.05),
+    ("clothing", "US", 0.12),
+    ("books", "US", 0),
+    ("furniture", "US", 0.15),
+])
+def test_duty_rate_categories(category, origin, expected):
+    assert duty_rate(category, origin) == expected
+
+
+# ==========================================
+# 2. TOTAL DUTY TESTS
+# ==========================================
+
+def test_negative_value():
+    with pytest.raises(ValueError, match="negative value"):
+        total_duty("electronics", -100, "US", False)
+
+
+def test_low_value_gift():
+    assert total_duty("electronics", 4000, "US", True) == 0
+
+
+def test_gift_above_exemption():
+    assert total_duty("electronics", 6000, "FTA", True) == 100
+
+
+def test_minimum_duty_for_gift():
+    assert total_duty("clothing", 5500, "FTA", True) == 50
+
+
+def test_low_value_non_gift():
+    assert total_duty("electronics", 1000, "US", False) == 0
+
+
+def test_normal_duty_calculation():
+    assert total_duty("electronics", 2000, "FTA", False) == 200
+
+
+def test_zero_duty():
+    assert total_duty("books", 2000, "US", False) == 0
+
+
+# ==========================================
+# 3. CLEARANCE CHANNEL TESTS
+# ==========================================
+
+def test_prohibited_item_refused():
+    assert clearance_channel(500, "weapons", True) == "refuse"
+
+
+def test_high_value_item_inspected():
+    assert clearance_channel(150000, "electronics", True) == "inspect"
+
+
+def test_missing_documents_inspected():
+    assert clearance_channel(30000, "electronics", False) == "inspect"
+
+
+def test_low_value_item_green_channel():
+    assert clearance_channel(10000, "electronics", True) == "green"
+
+
+# ==========================================
+# 4. BRANCH AND BOUNDARY TESTS
+# ==========================================
+
+def test_narcotics_are_prohibited():
+    with pytest.raises(ValueError, match="prohibited item"):
+        duty_rate("narcotics", "US")
+
+
+@pytest.mark.parametrize("value, expected", [
+    (5000, 0),
+    (5001, 50),
+])
+def test_gift_exemption_boundary(value, expected):
+    assert total_duty("electronics", value, "FTA", True) == expected
+
+
+@pytest.mark.parametrize("value, expected", [
+    (1000, 0),
+    (1001, 200.2),
+])
+def test_non_gift_exemption_boundary(value, expected):
+    assert total_duty("electronics", value, "US", False) == pytest.approx(expected)
+
+
+def test_duty_exactly_fifty():
+    assert total_duty("electronics", 5500, "FTA", True) == 50
+
+
+def test_clearance_exactly_one_hundred_thousand():
+    assert clearance_channel(100000, "electronics", True) == "green"
+
+
+def test_clearance_above_one_hundred_thousand():
+    assert clearance_channel(100001, "electronics", True) == "inspect"
+
+
+def test_clearance_exactly_twenty_thousand():
+    assert clearance_channel(20000, "electronics", False) == "green"
+
+
+def test_clearance_above_twenty_thousand_with_documents():
+    assert clearance_channel(20001, "electronics", True) == "green"
