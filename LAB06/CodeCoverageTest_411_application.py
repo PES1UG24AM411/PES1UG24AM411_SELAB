@@ -55,3 +55,23 @@ def test_normal_duty_calculation():
 
 def test_zero_duty():
     assert total_duty("books", 2000, "US", False) == 0
+
+
+# ==========================================
+# 3. CLEARANCE CHANNEL TESTS
+# ==========================================
+
+def test_prohibited_item_refused():
+    assert clearance_channel(500, "weapons", True) == "refuse"
+
+
+def test_high_value_item_inspected():
+    assert clearance_channel(150000, "electronics", True) == "inspect"
+
+
+def test_missing_documents_inspected():
+    assert clearance_channel(30000, "electronics", False) == "inspect"
+
+
+def test_low_value_item_green_channel():
+    assert clearance_channel(10000, "electronics", True) == "green"
