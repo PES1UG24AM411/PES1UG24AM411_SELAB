@@ -22,3 +22,36 @@ def test_prohibited_item():
 ])
 def test_duty_rate_categories(category, origin, expected):
     assert duty_rate(category, origin) == expected
+
+
+# ==========================================
+# 2. TOTAL DUTY TESTS
+# ==========================================
+
+def test_negative_value():
+    with pytest.raises(ValueError, match="negative value"):
+        total_duty("electronics", -100, "US", False)
+
+
+def test_low_value_gift():
+    assert total_duty("electronics", 4000, "US", True) == 0
+
+
+def test_gift_above_exemption():
+    assert total_duty("electronics", 6000, "FTA", True) == 100
+
+
+def test_minimum_duty_for_gift():
+    assert total_duty("clothing", 5500, "FTA", True) == 50
+
+
+def test_low_value_non_gift():
+    assert total_duty("electronics", 1000, "US", False) == 0
+
+
+def test_normal_duty_calculation():
+    assert total_duty("electronics", 2000, "FTA", False) == 200
+
+
+def test_zero_duty():
+    assert total_duty("books", 2000, "US", False) == 0
